@@ -29,11 +29,20 @@ export const api = {
   checkin:       (id)    => request(`/api/persons/${id}/checkin`, { method: 'POST' }),
   getPdfUrl:     (id)    => `${BASE_URL}/api/persons/${id}/pdf`,
 
-  // Families — sempre escopadas por festa
-  getFamiliesByParty:    (partyId)             => request(`/api/parties/${partyId}/families`),
-  getFamilyById:         (partyId, id)          => request(`/api/parties/${partyId}/families/${id}`),
-  createFamily:          (partyId, body)        => request(`/api/parties/${partyId}/families`, { method: 'POST', body: JSON.stringify(body) }),
-  deleteFamily:          (partyId, id)          => request(`/api/parties/${partyId}/families/${id}`, { method: 'DELETE' }),
-  addFamilyMember:       (partyId, id, personId) => request(`/api/parties/${partyId}/families/${id}/members`, { method: 'POST', body: JSON.stringify({ personId }) }),
-  removeFamilyMember:    (partyId, id, personId) => request(`/api/parties/${partyId}/families/${id}/members/${personId}`, { method: 'DELETE' }),
+  // Families — rotas globais (usadas pela HomePage / tela de criação de QR)
+  getFamilies:         ()        => request('/api/families'),
+  getFamilyById:       (id)      => request(`/api/families/${id}`),
+  createFamily:        (body)    => request('/api/families', { method: 'POST', body: JSON.stringify(body) }),
+  deleteFamily:        (id)      => request(`/api/families/${id}`, { method: 'DELETE' }),
+  addFamilyMember:     (id, personId) => request(`/api/families/${id}/members`, { method: 'POST', body: JSON.stringify({ personId }) }),
+  removeFamilyMember:  (id, personId) => request(`/api/families/${id}/members/${personId}`, { method: 'DELETE' }),
+  getFamilyPdfUrl:     (id)      => `${BASE_URL}/api/families/${id}/pdf`,
+
+  // Families — escopadas por festa (usadas nas pages de festa)
+  getFamiliesByParty:    (partyId)              => request(`/api/parties/${partyId}/families`),
+  getFamilyByPartyId:    (partyId, id)           => request(`/api/parties/${partyId}/families/${id}`),
+  createFamilyInParty:   (partyId, body)         => request(`/api/parties/${partyId}/families`, { method: 'POST', body: JSON.stringify(body) }),
+  deleteFamilyFromParty: (partyId, id)           => request(`/api/parties/${partyId}/families/${id}`, { method: 'DELETE' }),
+  addFamilyMemberParty:  (partyId, id, personId) => request(`/api/parties/${partyId}/families/${id}/members`, { method: 'POST', body: JSON.stringify({ personId }) }),
+  removeFamilyMemberParty: (partyId, id, personId) => request(`/api/parties/${partyId}/families/${id}/members/${personId}`, { method: 'DELETE' }),
 };
