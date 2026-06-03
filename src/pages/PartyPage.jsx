@@ -19,6 +19,65 @@ function Alert({ type, children }) {
 
 function conviteUrl(id) { return `${window.location.origin}/convite/${id}` }
 
+function fmtDate(dateStr) {
+  if (!dateStr) return null
+  return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+/* ─── Modal: detalhes da família ─── */
+function FamilyDetailModal({ family, onClose }) {
+  if (!family) return null
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="family-modal-box" onClick={e => e.stopPropagation()}>
+        <div className="family-modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 8,
+              background: 'var(--accent-bg)', border: '1px solid var(--accent-border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <UsersIcon size={16} color="var(--accent)" />
+            </div>
+            <div>
+              <div className="family-modal-title">{family.familyName}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{family.members?.length ?? 0} membros</div>
+            </div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Fechar">✕</button>
+        </div>
+
+        {(!family.members || family.members.length === 0) ? (
+          <p style={{ fontSize: 13, color: 'var(--text-3)', textAlign: 'center', padding: '1.5rem 0' }}>
+            Nenhum membro nesta família.
+          </p>
+        ) : (
+          <div>
+            {family.members.map(m => (
+              <div key={m.id} className="family-member-row">
+                <div className="family-member-avatar">
+                  <UsersIcon size={15} color="var(--accent)" />
+                </div>
+                <div className="family-member-info">
+                  <div className="family-member-name">{m.nome}</div>
+                  <div className="family-member-meta">{m.id}</div>
+                </div>
+                <span className={`badge ${m.isUsed ? 'badge-green' : 'badge-gray'}`} style={{ flexShrink: 0 }}>
+                  {m.isUsed ? <><CheckIcon size={10} /> Check-in</> : 'Disponível'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ marginTop: '1.25rem' }}>
+          <button className="btn btn-ghost btn-full" onClick={onClose}>Fechar</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ─── Aba: Criar Convidado ─── */
 function CreateGuestTab({ partyId, onCreated }) {
   const [nome, setNome] = useState('')
@@ -28,10 +87,12 @@ function CreateGuestTab({ partyId, onCreated }) {
   const [result, setResult] = useState(null)
   const [alert, setAlert] = useState(null)
   const [copied, setCopied] = useState(false)
+  const [familyModalOpen, setFamilyModalOpen] = useState(false)
 
+  // Carrega famílias escopadas pela festa atual
   const loadFamilies = useCallback(() => {
-    api.getFamilies().then(setFamilies).catch(() => {})
-  }, [])
+    api.getFamiliesByParty(partyId).then(setFamilies).catch(() => {})
+  }, [partyId])
 
   useEffect(() => { loadFamilies() }, [loadFamilies])
 
@@ -42,12 +103,12 @@ function CreateGuestTab({ partyId, onCreated }) {
       const body = { nome: nome.trim() }
       if (familyId) body.familyId = familyId
       const person = await api.createPerson(body)
-      // Vincula à festa via rota dedicada POST /api/parties/:id/guests
       await api.addPartyGuest(partyId, person.id)
       setResult(person)
       setNome(''); setFamilyId('')
       setAlert({ type: 'success', msg: `QR code gerado para ${person.nome}!` })
       onCreated?.()
+      loadFamilies()
     } catch (e) {
       setAlert({ type: 'error', msg: e.message })
     } finally { setLoading(false) }
@@ -59,6 +120,8 @@ function CreateGuestTab({ partyId, onCreated }) {
       setCopied(true); setTimeout(() => setCopied(false), 2000)
     })
   }
+
+  const selectedFamily = result?.family || families.find(f => f.id === result?.familyId)
 
   return (
     <div className="stack">
@@ -79,7 +142,7 @@ function CreateGuestTab({ partyId, onCreated }) {
           </select>
         </div>
         <button className="btn btn-primary" onClick={handleCreate} disabled={loading}>
-          {loading ? <><div className="spinner" /> Gerando...</> : <><QrIcon size={16} color="#fff" /> Gerar QR code</>}
+          {loading ? <><div className="spinner" /> Gerando...</> : <><QrIcon size={16} color="var(--bg)" /> Gerar QR code</>}
         </button>
       </div>
 
@@ -93,12 +156,35 @@ function CreateGuestTab({ partyId, onCreated }) {
                     <QrIcon size={60} color="#ccc" />
                   </div>}
             </div>
+
             <div className="qr-name">{result.nome}</div>
-            {result.family && (
-              <div className="flex items-center gap-2 mt-1" style={{ color: 'var(--text-2)', fontSize: 13 }}>
-                <UsersIcon size={13} /> {result.family.familyName}
+
+            {/* Problema 2: informações completas pós-criação */}
+            <div className="qr-meta">
+              <div className="qr-status-row">
+                <span className={`badge ${result.isUsed ? 'badge-green' : 'badge-gray'}`}>
+                  {result.isUsed ? <><CheckIcon size={10} /> Check-in</> : 'Disponível'}
+                </span>
+                {selectedFamily && (
+                  <span className="badge badge-accent" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <UsersIcon size={10} /> {selectedFamily.familyName}
+                  </span>
+                )}
               </div>
-            )}
+              {result.createdAt && (
+                <div className="qr-date">Criado em {fmtDate(result.createdAt)}</div>
+              )}
+              {selectedFamily && (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ marginTop: 4 }}
+                  onClick={() => setFamilyModalOpen(true)}
+                >
+                  <UsersIcon size={13} /> Ver detalhes da família
+                </button>
+              )}
+            </div>
+
             <div className="qr-id">{result.id}</div>
             <div className="qr-actions">
               <a href={api.getPdfUrl(result.id)} target="_blank" rel="noreferrer" className="btn btn-ghost" style={{ flex: 1 }}>
@@ -116,12 +202,16 @@ function CreateGuestTab({ partyId, onCreated }) {
           </div>
         </div>
       )}
+
+      {familyModalOpen && selectedFamily && (
+        <FamilyDetailModal family={selectedFamily} onClose={() => setFamilyModalOpen(false)} />
+      )}
     </div>
   )
 }
 
 /* ─── Aba: Famílias ─── */
-function FamiliesTab({ partyGuests, onRefresh }) {
+function FamiliesTab({ partyId, partyGuests, onRefresh }) {
   const [families, setFamilies] = useState([])
   const [loadingList, setLoadingList] = useState(true)
   const [alert, setAlert] = useState(null)
@@ -129,17 +219,16 @@ function FamiliesTab({ partyGuests, onRefresh }) {
   const [creating, setCreating] = useState(false)
   const [expanded, setExpanded] = useState(null)
   const [toDelete, setToDelete] = useState(null)
-
-  // Adicionar membro a família
-  const [addingTo, setAddingTo] = useState(null) // familyId
+  const [addingTo, setAddingTo] = useState(null)
   const [selectedPerson, setSelectedPerson] = useState('')
 
+  // Carrega apenas as famílias desta festa
   const loadFamilies = useCallback(async () => {
     setLoadingList(true)
-    try { setFamilies(await api.getFamilies()) }
+    try { setFamilies(await api.getFamiliesByParty(partyId)) }
     catch (e) { setAlert({ type: 'error', msg: e.message }) }
     finally { setLoadingList(false) }
-  }, [])
+  }, [partyId])
 
   useEffect(() => { loadFamilies() }, [loadFamilies])
 
@@ -147,7 +236,7 @@ function FamiliesTab({ partyGuests, onRefresh }) {
     if (!familyName.trim()) { setAlert({ type: 'error', msg: 'O nome da família é obrigatório.' }); return }
     setCreating(true); setAlert(null)
     try {
-      await api.createFamily({ familyName: familyName.trim() })
+      await api.createFamily(partyId, { familyName: familyName.trim() })
       setFamilyName('')
       setAlert({ type: 'success', msg: `Família criada!` })
       await loadFamilies()
@@ -158,7 +247,7 @@ function FamiliesTab({ partyGuests, onRefresh }) {
   async function handleAddMember(familyId) {
     if (!selectedPerson) return
     try {
-      await api.addFamilyMember(familyId, selectedPerson)
+      await api.addFamilyMember(partyId, familyId, selectedPerson)
       setSelectedPerson(''); setAddingTo(null)
       setAlert({ type: 'success', msg: 'Membro adicionado!' })
       await loadFamilies()
@@ -168,7 +257,7 @@ function FamiliesTab({ partyGuests, onRefresh }) {
 
   async function handleRemoveMember(familyId, personId) {
     try {
-      await api.removeFamilyMember(familyId, personId)
+      await api.removeFamilyMember(partyId, familyId, personId)
       setAlert({ type: 'success', msg: 'Membro removido.' })
       await loadFamilies()
       onRefresh?.()
@@ -177,20 +266,18 @@ function FamiliesTab({ partyGuests, onRefresh }) {
 
   async function confirmDelete() {
     try {
-      await api.deleteFamily(toDelete.id)
+      await api.deleteFamily(partyId, toDelete.id)
       setFamilies(f => f.filter(x => x.id !== toDelete.id))
     } catch (e) { setAlert({ type: 'error', msg: e.message }) }
     finally { setToDelete(null) }
   }
 
-  // Convidados da festa que ainda não têm família (ou nenhum = todos os persons)
   const unassigned = partyGuests.filter(g => !g.familyId)
 
   return (
     <div className="stack">
       {alert && <Alert type={alert.type}>{alert.msg}</Alert>}
 
-      {/* Criar família */}
       <div className="card">
         <div className="card-title"><UsersIcon size={14} /> Nova família</div>
         <div className="form-group">
@@ -199,14 +286,13 @@ function FamiliesTab({ partyGuests, onRefresh }) {
             onKeyDown={e => e.key === 'Enter' && handleCreate()} placeholder="Ex: Família Silva" />
         </div>
         <button className="btn btn-primary" onClick={handleCreate} disabled={creating}>
-          {creating ? <><div className="spinner" /> Criando...</> : <><UsersIcon size={16} color="#fff" /> Criar família</>}
+          {creating ? <><div className="spinner" /> Criando...</> : <><UsersIcon size={16} color="var(--bg)" /> Criar família</>}
         </button>
       </div>
 
-      {/* Lista de famílias */}
       <div className="card">
         <div className="card-title" style={{ marginBottom: '0.75rem' }}>
-          <UsersIcon size={14} /> Famílias cadastradas
+          <UsersIcon size={14} /> Famílias desta festa
           <button className="btn btn-ghost btn-sm" onClick={loadFamilies} style={{ marginLeft: 'auto', padding: '4px 10px' }}>
             <RefreshIcon size={13} />
           </button>
@@ -218,21 +304,21 @@ function FamiliesTab({ partyGuests, onRefresh }) {
           </div>
         ) : families.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-3)', fontSize: 14 }}>
-            Nenhuma família cadastrada ainda.
+            Nenhuma família cadastrada nesta festa.
           </div>
         ) : (
           <div className="stack" style={{ gap: 8 }}>
             {families.map(f => (
               <div key={f.id}>
-                {/* Cabeçalho da família */}
                 <div
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '12px 14px', background: expanded === f.id ? 'var(--accent-bg)' : 'var(--bg-3)',
+                    padding: '12px 14px',
+                    background: expanded === f.id ? 'var(--accent-bg)' : 'var(--bg-3)',
                     borderRadius: expanded === f.id ? '10px 10px 0 0' : 10,
                     border: `1px solid ${expanded === f.id ? 'var(--accent-border)' : 'var(--border)'}`,
                     borderBottom: expanded === f.id ? 'none' : undefined,
-                    cursor: 'pointer', transition: 'all .15s',
+                    cursor: 'pointer',
                   }}
                   onClick={() => setExpanded(expanded === f.id ? null : f.id)}
                 >
@@ -256,7 +342,6 @@ function FamiliesTab({ partyGuests, onRefresh }) {
                   </div>
                 </div>
 
-                {/* Membros expandidos */}
                 {expanded === f.id && (
                   <div style={{
                     border: '1px solid var(--accent-border)', borderTop: 'none',
@@ -285,7 +370,6 @@ function FamiliesTab({ partyGuests, onRefresh }) {
                       </div>
                     )}
 
-                    {/* Adicionar membro */}
                     {addingTo === f.id ? (
                       <div style={{ display: 'flex', gap: 8 }}>
                         <select value={selectedPerson} onChange={e => setSelectedPerson(e.target.value)} style={{ flex: 1, fontSize: 13 }}>
@@ -465,7 +549,7 @@ export default function PartyPage() {
   const tabs = [
     { id: 'create',   label: 'Novo QR',    icon: <QrIcon size={14} /> },
     { id: 'families', label: 'Famílias',   icon: <UsersIcon size={14} /> },
-    { id: 'guests',   label: `Convidados ${guests.length ? `(${guests.length})` : ''}`, icon: null },
+    { id: 'guests',   label: `Convidados${guests.length ? ` (${guests.length})` : ''}`, icon: null },
   ]
 
   return (
@@ -492,7 +576,7 @@ export default function PartyPage() {
         ) : (
           <>
             {tab === 'create'   && <CreateGuestTab partyId={id} onCreated={load} />}
-            {tab === 'families' && <FamiliesTab partyGuests={guests} onRefresh={load} />}
+            {tab === 'families' && <FamiliesTab partyId={id} partyGuests={guests} onRefresh={load} />}
             {tab === 'guests'   && <GuestsTab partyId={id} guests={guests} loading={loading} onRefresh={load} />}
           </>
         )}
