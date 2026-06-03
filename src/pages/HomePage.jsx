@@ -23,7 +23,7 @@ function conviteUrl(id) {
   return `${window.location.origin}/convite/${id}`
 }
 
-/* ─── Aba: Criar QR ─── */
+/* ─── Aba: Criar QR (pessoa) ─── */
 function CreateTab() {
   const [nome, setNome] = useState('')
   const [familyId, setFamilyId] = useState('')
@@ -33,22 +33,21 @@ function CreateTab() {
   const [alert, setAlert] = useState(null)
   const [copied, setCopied] = useState(false)
 
-  useEffect(() => {
+  const loadFamilies = useCallback(() => {
     api.getFamilies().then(setFamilies).catch(() => {})
   }, [])
 
+  useEffect(() => { loadFamilies() }, [loadFamilies])
+
   async function handleCreate() {
     if (!nome.trim()) { setAlert({ type: 'error', msg: 'O nome é obrigatório.' }); return }
-    setLoading(true)
-    setAlert(null)
-    setResult(null)
+    setLoading(true); setAlert(null); setResult(null)
     try {
       const body = { nome: nome.trim() }
       if (familyId) body.familyId = familyId
       const person = await api.createPerson(body)
       setResult(person)
-      setNome('')
-      setFamilyId('')
+      setNome(''); setFamilyId('')
       setAlert({ type: 'success', msg: `QR code gerado para ${person.nome}!` })
     } catch (e) {
       setAlert({ type: 'error', msg: e.message })
@@ -75,6 +74,9 @@ function CreateTab() {
       {alert && <Alert type={alert.type}>{alert.msg}</Alert>}
 
       <div className="card">
+        <div className="card-title">
+          <QrIcon size={14} /> Dados do convidado
+        </div>
         <div className="form-group">
           <label className="field-label" htmlFor="nome">Nome completo *</label>
           <input
@@ -111,7 +113,6 @@ function CreateTab() {
                   </div>
               }
             </div>
-
             <div className="qr-name">{result.nome}</div>
             {result.family && (
               <div className="flex items-center gap-2 mt-1" style={{ color: 'var(--text-2)', fontSize: 13 }}>
@@ -119,14 +120,11 @@ function CreateTab() {
               </div>
             )}
             <div className="qr-id">{result.id}</div>
-
             <div className="qr-actions">
               <a
                 href={api.getPdfUrl(result.id)}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn-ghost"
-                style={{ flex: 1 }}
+                target="_blank" rel="noreferrer"
+                className="btn btn-ghost" style={{ flex: 1 }}
               >
                 <DownloadIcon /> PDF
               </a>
@@ -134,25 +132,174 @@ function CreateTab() {
                 {copied ? <><CheckIcon size={14} /> Copiado!</> : <><LinkIcon /> Link convite</>}
               </button>
             </div>
-
-            {/* Link do convite */}
             <div className="link-box" style={{ width: '100%', maxWidth: 360 }}>
               <LinkIcon size={14} />
               <span>{conviteUrl(result.id)}</span>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={copyLink}
-                title="Copiar link"
-              >
+              <button className="btn btn-ghost btn-sm" onClick={copyLink} title="Copiar link">
                 <CopyIcon size={13} />
               </button>
             </div>
-
             <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: '0.75rem' }}>
               Envie este link para o convidado ver e baixar o próprio QR code.
             </p>
           </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+/* ─── Aba: Criar Família ─── */
+function FamilyTab() {
+  const [familyName, setFamilyName] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [alert, setAlert] = useState(null)
+  const [families, setFamilies] = useState([])
+  const [loadingList, setLoadingList] = useState(true)
+  const [toDelete, setToDelete] = useState(null)
+
+  const loadFamilies = useCallback(async () => {
+    setLoadingList(true)
+    try {
+      const data = await api.getFamilies()
+      setFamilies(data)
+    } catch (e) {
+      setAlert({ type: 'error', msg: 'Erro ao carregar famílias.' })
+    } finally {
+      setLoadingList(false)
+    }
+  }, [])
+
+  useEffect(() => { loadFamilies() }, [loadFamilies])
+
+  async function handleCreate() {
+    if (!familyName.trim()) { setAlert({ type: 'error', msg: 'O nome da família é obrigatório.' }); return }
+    setLoading(true); setAlert(null)
+    try {
+      await api.createFamily({ familyName: familyName.trim() })
+      setFamilyName('')
+      setAlert({ type: 'success', msg: `Família "${familyName.trim()}" criada!` })
+      loadFamilies()
+    } catch (e) {
+      setAlert({ type: 'error', msg: e.message })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function confirmDelete() {
+    try {
+      await api.deleteFamily(toDelete.id)
+      setFamilies(f => f.filter(x => x.id !== toDelete.id))
+    } catch (e) {
+      setAlert({ type: 'error', msg: 'Erro ao remover: ' + e.message })
+    } finally {
+      setToDelete(null)
+    }
+  }
+
+  return (
+    <div className="stack">
+      <div className="page-header" style={{ paddingBottom: '0.5rem' }}>
+        <h2>Gerenciar famílias</h2>
+        <p>Crie grupos de família para organizar os convidados.</p>
+      </div>
+
+      {alert && <Alert type={alert.type}>{alert.msg}</Alert>}
+
+      {/* Formulário de criação */}
+      <div className="card">
+        <div className="card-title">
+          <UsersIcon size={14} /> Nova família
+        </div>
+        <div className="form-group">
+          <label className="field-label" htmlFor="familyName">Nome da família *</label>
+          <input
+            id="familyName" type="text" value={familyName}
+            onChange={e => setFamilyName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleCreate()}
+            placeholder="Ex: Família Silva"
+          />
+        </div>
+        <button className="btn btn-primary" onClick={handleCreate} disabled={loading}>
+          {loading
+            ? <><div className="spinner" /> Criando...</>
+            : <><UsersIcon size={16} color="#fff" /> Criar família</>}
+        </button>
+      </div>
+
+      {/* Lista de famílias */}
+      <div className="card">
+        <div className="card-title" style={{ marginBottom: '0.75rem' }}>
+          <UsersIcon size={14} /> Famílias cadastradas
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={loadFamilies}
+            style={{ marginLeft: 'auto', padding: '4px 10px' }}
+            title="Atualizar"
+          >
+            <RefreshIcon size={13} />
+          </button>
+        </div>
+
+        {loadingList ? (
+          <div className="stack" style={{ gap: '8px' }}>
+            {[1,2,3].map(i => (
+              <div key={i} className="skeleton" style={{ height: 52, borderRadius: 10 }} />
+            ))}
+          </div>
+        ) : families.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-3)' }}>
+            <UsersIcon size={32} color="var(--text-3)" />
+            <p style={{ marginTop: 10, fontSize: 14 }}>Nenhuma família cadastrada ainda.</p>
+          </div>
+        ) : (
+          <div className="stack" style={{ gap: '8px' }}>
+            {families.map(f => (
+              <div key={f.id} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 14px', background: 'var(--bg-3)',
+                borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8,
+                    background: 'var(--accent-bg)', border: '1px solid var(--accent-border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <UsersIcon size={15} color="var(--accent)" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{f.familyName}</div>
+                    {f.members !== undefined && (
+                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                        {f.members} {f.members === 1 ? 'membro' : 'membros'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={() => setToDelete(f)}
+                  title="Remover família"
+                >
+                  <TrashIcon size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {toDelete && (
+        <ConfirmModal
+          title="Remover família"
+          body={`Tem certeza que deseja remover a família "${toDelete.familyName}"? Os convidados vinculados não serão removidos.`}
+          confirmLabel="Remover"
+          danger
+          onConfirm={confirmDelete}
+          onCancel={() => setToDelete(null)}
+        />
       )}
     </div>
   )
@@ -196,10 +343,8 @@ function PersonCard({ person, onDelete }) {
       <div className="pc-actions">
         <a
           href={api.getPdfUrl(person.id)}
-          target="_blank"
-          rel="noreferrer"
-          className="btn btn-ghost btn-sm"
-          title="Baixar PDF"
+          target="_blank" rel="noreferrer"
+          className="btn btn-ghost btn-sm" title="Baixar PDF"
         >
           <DownloadIcon />
         </a>
@@ -227,8 +372,7 @@ function ListTab() {
   const [toDelete, setToDelete] = useState(null)
 
   const load = useCallback(async () => {
-    setLoading(true)
-    setAlert(null)
+    setLoading(true); setAlert(null)
     try {
       const data = await api.getPersons()
       setPersons(data)
@@ -255,7 +399,6 @@ function ListTab() {
   const filtered = persons.filter(p =>
     p.nome.toLowerCase().includes(search.toLowerCase())
   )
-
   const total = persons.length
   const used = persons.filter(p => p.isUsed).length
   const avail = total - used
@@ -267,31 +410,23 @@ function ListTab() {
         <p>Lista de todos os QR codes gerados.</p>
       </div>
 
-      {/* Stats */}
       <div className="stats-row">
         <div className="stat-box">
-          {loading
-            ? <div className="skeleton" style={{ height: 28, borderRadius: 4 }} />
-            : <div className="stat-n">{total}</div>}
+          {loading ? <div className="skeleton" style={{ height: 28, borderRadius: 4 }} /> : <div className="stat-n">{total}</div>}
           <div className="stat-l">total</div>
         </div>
         <div className="stat-box">
-          {loading
-            ? <div className="skeleton" style={{ height: 28, borderRadius: 4 }} />
-            : <div className="stat-n" style={{ color: 'var(--green)' }}>{used}</div>}
+          {loading ? <div className="skeleton" style={{ height: 28, borderRadius: 4 }} /> : <div className="stat-n" style={{ color: 'var(--green)' }}>{used}</div>}
           <div className="stat-l">check-ins</div>
         </div>
         <div className="stat-box">
-          {loading
-            ? <div className="skeleton" style={{ height: 28, borderRadius: 4 }} />
-            : <div className="stat-n">{avail}</div>}
+          {loading ? <div className="skeleton" style={{ height: 28, borderRadius: 4 }} /> : <div className="stat-n">{avail}</div>}
           <div className="stat-l">disponíveis</div>
         </div>
       </div>
 
       {alert && <Alert type={alert.type}>{alert.msg}</Alert>}
 
-      {/* Search + Refresh */}
       <div className="search-row">
         <div style={{ position: 'relative', flex: 1 }}>
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }}>
@@ -309,10 +444,9 @@ function ListTab() {
         </button>
       </div>
 
-      {/* Grid */}
       {loading ? (
         <div className="person-grid">
-          {[1, 2, 3].map(i => (
+          {[1,2,3].map(i => (
             <div key={i} className="skeleton" style={{ height: 240, borderRadius: 16 }} />
           ))}
         </div>
@@ -351,27 +485,32 @@ function ListTab() {
 export default function HomePage() {
   const [tab, setTab] = useState('create')
 
+  const tabs = [
+    { id: 'create', label: 'Criar QR',   icon: <QrIcon size={14} /> },
+    { id: 'family', label: 'Famílias',   icon: <UsersIcon size={14} /> },
+    { id: 'list',   label: 'Convidados', icon: null },
+  ]
+
   return (
     <div className="page">
       <Topbar right={
         <div className="tab-nav">
-          <button
-            className={`tab-btn ${tab === 'create' ? 'active' : ''}`}
-            onClick={() => setTab('create')}
-          >
-            <QrIcon size={14} /> Criar QR
-          </button>
-          <button
-            className={`tab-btn ${tab === 'list' ? 'active' : ''}`}
-            onClick={() => setTab('list')}
-          >
-            Lista
-          </button>
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              className={`tab-btn ${tab === t.id ? 'active' : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.icon} {t.label}
+            </button>
+          ))}
         </div>
       } />
 
       <div className="container" style={{ paddingTop: '1rem', paddingBottom: '3rem' }}>
-        {tab === 'create' ? <CreateTab /> : <ListTab />}
+        {tab === 'create' && <CreateTab />}
+        {tab === 'family' && <FamilyTab />}
+        {tab === 'list'   && <ListTab />}
       </div>
     </div>
   )
