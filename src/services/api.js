@@ -12,12 +12,15 @@ async function request(path, opts = {}) {
 
 export const api = {
   // Parties
-  getParties:   ()       => request('/api/parties'),
-  getPartyById: (id)     => request(`/api/parties/${id}`),
-  createParty:  (body)   => request('/api/parties', { method: 'POST', body: JSON.stringify(body) }),
-  updateParty:  (id, b)  => request(`/api/parties/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
-  deleteParty:  (id)     => request(`/api/parties/${id}`, { method: 'DELETE' }),
-  getCheckins:  (id)     => request(`/api/parties/${id}/checkins`),
+  getParties:    ()          => request('/api/parties'),
+  getPartyById:  (id)        => request(`/api/parties/${id}`),
+  createParty:   (body)      => request('/api/parties', { method: 'POST', body: JSON.stringify(body) }),
+  updateParty:   (id, body)  => request(`/api/parties/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteParty:   (id)        => request(`/api/parties/${id}`, { method: 'DELETE' }),
+  getCheckins:   (id)        => request(`/api/parties/${id}/checkins`),
+  // Vincular / desvincular convidado de festa
+  addPartyGuest:    (partyId, personId) => request(`/api/parties/${partyId}/guests`, { method: 'POST', body: JSON.stringify({ personId }) }),
+  removePartyGuest: (partyId, personId) => request(`/api/parties/${partyId}/guests/${personId}`, { method: 'DELETE' }),
 
   // Persons
   getPersons:    ()      => request('/api/persons'),
@@ -28,10 +31,10 @@ export const api = {
   getPdfUrl:     (id)    => `${BASE_URL}/api/persons/${id}/pdf`,
 
   // Families
-  getFamilies:    ()              => request('/api/families'),
-  getFamilyById:  (id)            => request(`/api/families/${id}`),
-  createFamily:   (body)          => request('/api/families', { method: 'POST', body: JSON.stringify(body) }),
-  deleteFamily:   (id)            => request(`/api/families/${id}`, { method: 'DELETE' }),
-  addFamilyMember:(id, personId)  => request(`/api/families/${id}/members`, { method: 'POST', body: JSON.stringify({ personId }) }),
-  removeFamilyMember:(id, pid)    => request(`/api/families/${id}/members/${pid}`, { method: 'DELETE' }),
+  getFamilies:       ()             => request('/api/families'),
+  getFamilyById:     (id)           => request(`/api/families/${id}`),
+  createFamily:      (body)         => request('/api/families', { method: 'POST', body: JSON.stringify(body) }),
+  deleteFamily:      (id)           => request(`/api/families/${id}`, { method: 'DELETE' }),
+  addFamilyMember:   (id, personId) => request(`/api/families/${id}/members`, { method: 'POST', body: JSON.stringify({ personId }) }),
+  removeFamilyMember:(id, personId) => request(`/api/families/${id}/members/${personId}`, { method: 'DELETE' }),
 };

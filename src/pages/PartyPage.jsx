@@ -42,8 +42,8 @@ function CreateGuestTab({ partyId, onCreated }) {
       const body = { nome: nome.trim() }
       if (familyId) body.familyId = familyId
       const person = await api.createPerson(body)
-      // Vincula à festa atualizando a festa com o novo guest
-      await api.updateParty(partyId, { guestIds: [person.id] })
+      // Vincula à festa via rota dedicada POST /api/parties/:id/guests
+      await api.addPartyGuest(partyId, person.id)
       setResult(person)
       setNome(''); setFamilyId('')
       setAlert({ type: 'success', msg: `QR code gerado para ${person.nome}!` })
@@ -340,7 +340,7 @@ function GuestsTab({ partyId, guests, loading, onRefresh }) {
 
   async function confirmDelete() {
     try {
-      await api.deletePerson(toDelete.id)
+      await api.removePartyGuest(partyId, toDelete.id)
       onRefresh()
     } catch (e) {
       setAlert({ type: 'error', msg: 'Erro ao remover: ' + e.message })
@@ -433,7 +433,7 @@ function GuestsTab({ partyId, guests, loading, onRefresh }) {
       {toDelete && (
         <ConfirmModal
           title="Remover convidado"
-          body={`Remover "${toDelete.nome}"? Esta ação não pode ser desfeita.`}
+          body={`Remover "${toDelete.nome}" da lista de convidados desta festa?`}
           confirmLabel="Remover" danger
           onConfirm={confirmDelete}
           onCancel={() => setToDelete(null)}
