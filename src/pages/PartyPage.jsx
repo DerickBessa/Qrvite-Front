@@ -236,7 +236,7 @@ function FamiliesTab({ partyId, partyGuests, onRefresh }) {
     if (!familyName.trim()) { setAlert({ type: 'error', msg: 'O nome da família é obrigatório.' }); return }
     setCreating(true); setAlert(null)
     try {
-      await api.createFamily(partyId, { familyName: familyName.trim() })
+      await api.createFamilyInParty(partyId, { familyName: familyName.trim() })
       setFamilyName('')
       setAlert({ type: 'success', msg: `Família criada!` })
       await loadFamilies()
@@ -247,7 +247,7 @@ function FamiliesTab({ partyId, partyGuests, onRefresh }) {
   async function handleAddMember(familyId) {
     if (!selectedPerson) return
     try {
-      await api.addFamilyMember(partyId, familyId, selectedPerson)
+      await api.addFamilyMemberParty(partyId, familyId, selectedPerson)
       setSelectedPerson(''); setAddingTo(null)
       setAlert({ type: 'success', msg: 'Membro adicionado!' })
       await loadFamilies()
@@ -257,7 +257,7 @@ function FamiliesTab({ partyId, partyGuests, onRefresh }) {
 
   async function handleRemoveMember(familyId, personId) {
     try {
-      await api.removeFamilyMember(partyId, familyId, personId)
+      await api.removeFamilyMemberParty(partyId, familyId, personId)
       setAlert({ type: 'success', msg: 'Membro removido.' })
       await loadFamilies()
       onRefresh?.()
@@ -266,7 +266,7 @@ function FamiliesTab({ partyId, partyGuests, onRefresh }) {
 
   async function confirmDelete() {
     try {
-      await api.deleteFamily(partyId, toDelete.id)
+      await api.deleteFamilyFromParty(partyId, toDelete.id)
       setFamilies(f => f.filter(x => x.id !== toDelete.id))
     } catch (e) { setAlert({ type: 'error', msg: e.message }) }
     finally { setToDelete(null) }
@@ -532,17 +532,27 @@ export default function PartyPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [party, setParty] = useState(null)
-  const [loading, setLoading] = useState(true)
+  // initialLoading: só true na primeira carga — desmonta os tabs
+  const [initialLoading, setInitialLoading] = useState(true)
+  // refreshing: recargas silenciosas — NÃO desmonta os tabs
+  const [refreshing, setRefreshing] = useState(false)
   const [tab, setTab] = useState('create')
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setInitialLoading(true)
+    else setRefreshing(true)
     try { setParty(await api.getPartyById(id)) }
     catch { navigate('/') }
-    finally { setLoading(false) }
+    finally {
+      setInitialLoading(false)
+      setRefreshing(false)
+    }
   }, [id, navigate])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load(false) }, [load])
+
+  // onCreated chama recarga silenciosa — tabs não são desmontados
+  const handleCreated = useCallback(() => load(true), [load])
 
   const guests = party?.guests ?? []
 
@@ -569,15 +579,15 @@ export default function PartyPage() {
       />
 
       <div className="container" style={{ paddingTop: '1rem', paddingBottom: '3rem' }}>
-        {loading ? (
+        {initialLoading ? (
           <div className="stack">
             <div className="skeleton" style={{ height: 200, borderRadius: 16 }} />
           </div>
         ) : (
           <>
-            {tab === 'create'   && <CreateGuestTab partyId={id} onCreated={load} />}
-            {tab === 'families' && <FamiliesTab partyId={id} partyGuests={guests} onRefresh={load} />}
-            {tab === 'guests'   && <GuestsTab partyId={id} guests={guests} loading={loading} onRefresh={load} />}
+            {tab === 'create'   && <CreateGuestTab partyId={id} onCreated={handleCreated} />}
+            {tab === 'families' && <FamiliesTab partyId={id} partyGuests={guests} onRefresh={handleCreated} />}
+            {tab === 'guests'   && <GuestsTab partyId={id} guests={guests} loading={refreshing} onRefresh={handleCreated} />}
           </>
         )}
       </div>
