@@ -53,44 +53,50 @@
 }
 
 /* ════════════════════════════════════════════
-   DARK MODE
+   DARK MODE (Refinado e Menos Monocromático)
 ════════════════════════════════════════════ */
 [data-theme="dark"] {
-  --bg:        #010B04;
-  --bg-2:      #07150C;
-  --bg-3:      #0C1F13;
-  --bg-4:      #112718;
-  --border:    rgba(61, 220, 132, 0.10);
-  --border-2:  rgba(61, 220, 132, 0.20);
+  /* Fundo baseado em Slate/Grafite profundo para quebrar o "verde total" */
+  --bg:        #0b0f19; /* Azul-grafite muito escuro */
+  --bg-2:      #111827; /* Tom de elevação para cards */
+  --bg-3:      #1f2937; /* Tom para inputs e fundo de abas */
+  --bg-4:      #374151; /* Tom de destaque neutro */
+  --border:    rgba(156, 163, 175, 0.12);
+  --border-2:  rgba(156, 163, 175, 0.25);
 
-  --text:      #F5F7F5;
-  --text-2:    #A8B3AC;
-  --text-3:    #5a7a62;
+  /* Textos com contraste confortável, levemente azulados/frios */
+  --text:      #f9fafb;
+  --text-2:    #d1d5db;
+  --text-3:    #9ca3af;
 
-  --accent:        #3DDC84;
-  --accent-hover:  #2FC46F;
-  --accent-light:  #5ae89a;
-  --accent-bg:     rgba(61, 220, 132, 0.08);
-  --accent-border: rgba(61, 220, 132, 0.22);
+  /* Accent alterado para um Esmeralda/Menta sofisticado (menos saturado) */
+  --accent:        #34d399; /* Menta vibrante mas elegante */
+  --accent-hover:  #059669;
+  --accent-light:  #6ee7b7;
+  --accent-bg:     rgba(52, 211, 153, 0.08);
+  --accent-border: rgba(52, 211, 153, 0.25);
 
-  --green:        #3DDC84;
-  --green-bg:     rgba(61, 220, 132, 0.10);
-  --green-border: rgba(61, 220, 132, 0.25);
+  /* Cores de Estado equilibradas */
+  --green:        #10b981;
+  --green-bg:     rgba(16, 185, 129, 0.08);
+  --green-border: rgba(16, 185, 129, 0.20);
 
-  --red:        #f87171;
-  --red-bg:     rgba(248, 113, 113, 0.10);
-  --red-border: rgba(248, 113, 113, 0.25);
+  --red:          #f87171; /* Vermelho pastel agradável */
+  --red-bg:       rgba(248, 113, 113, 0.08);
+  --red-border:   rgba(248, 113, 113, 0.20);
 
-  --amber:      #fbbf24;
-  --amber-bg:   rgba(251, 191, 36, 0.10);
+  --amber:        #fbbf24; /* Âmbar/Dourado para contraste caloroso */
+  --amber-bg:     rgba(251, 191, 36, 0.08);
 
-  --shadow:        0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px var(--border);
-  --shadow-accent: 0 4px 16px rgba(61,220,132,0.18);
-  --shadow-card:   0 2px 12px rgba(0,0,0,0.3);
+  /* Sombras ajustadas para a nova profundidade */
+  --shadow:        0 1px 3px rgba(0,0,0,0.5), 0 0 0 1px var(--border);
+  --shadow-accent: 0 4px 16px rgba(52, 211, 153, 0.15);
+  --shadow-card:   0 4px 20px rgba(0,0,0,0.4);
 
-  --topbar-bg: rgba(7,21,12,0.92);
-  --modal-overlay: rgba(0,0,0,.65);
-  --qr-bg: #ffffff;
+  /* Overlays e específicos */
+  --topbar-bg:     rgba(11, 15, 25, 0.92); /* Casando com o novo --bg */
+  --modal-overlay: rgba(3, 7, 18, 0.75);
+  --qr-bg:         #ffffff; /* Mantido branco para leitura do QR */
   --input-date-scheme: dark;
 }
 
@@ -134,8 +140,8 @@ body { min-height: 100vh; }
 [data-theme="dark"] .logo-icon {
   box-shadow: 0 2px 8px rgba(61,220,132,0.25);
 }
-.logo-icon svg { width: 18px; height: 18px; color: #010B04; }
-[data-theme="dark"] .logo-icon svg { color: #010B04; }
+.logo-icon svg { width: 18px; height: 18px; color: #fff; } /* Mudei para branco no light */
+[data-theme="dark"] .logo-icon svg { color: #0b0f19; } /* Novo fundo dark */
 .logo-text { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
 .logo-badge {
   font-size: 10px; padding: 2px 8px; border-radius: 20px;
@@ -169,7 +175,7 @@ body { min-height: 100vh; }
   background: var(--accent); color: #fff;
   box-shadow: 0 1px 4px rgba(26,92,40,0.25);
 }
-[data-theme="dark"] .tab-btn.active { color: #010B04; }
+[data-theme="dark"] .tab-btn.active { color: #111827; } /* Cor do texto interna do botão ativo */
 .tab-btn:hover:not(.active) { color: var(--accent); background: var(--accent-bg); }
 
 /* ── Cards ── */
@@ -224,7 +230,25 @@ select {
   padding-right: 36px; cursor: pointer;
 }
 [data-theme="dark"] select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%233DDC84' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  /* Força a imagem a não se repetir e a ficar alinhada à direita */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2334d399' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-color: var(--bg-3); /* Garante o fundo correto do input */
+}
+
+[data-theme="dark"] select {
+  /* Força a imagem a não se repetir e a ficar alinhada à direita */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2334d399' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-color: var(--bg-3); /* Garante o fundo correto do input */
+}
+
+/* Corrige as opções (dropdown) dentro do select no modo escuro */
+[data-theme="dark"] select option {
+  background-color: var(--bg-2);
+  color: var(--text);
 }
 select option { background: var(--bg-2); color: var(--text); }
 
@@ -241,7 +265,7 @@ select option { background: var(--bg-2); color: var(--text); }
   background: var(--accent); color: #fff; width: 100%; padding: 11px;
   box-shadow: 0 2px 8px rgba(26,92,40,0.22);
 }
-[data-theme="dark"] .btn-primary { color: #010B04; }
+[data-theme="dark"] .btn-primary { color: #111827; }
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
   box-shadow: var(--shadow-accent);
@@ -502,4 +526,16 @@ select option { background: var(--bg-2); color: var(--text); }
 @media (max-width: 380px) {
   .person-grid { grid-template-columns: 1fr; }
   .stats-row { grid-template-columns: 1fr; }
+}
+
+/* Melhora o comportamento de quebra da barra no mobile */
+@media (max-width: 480px) {
+  .topbar-inner {
+    gap: 8px;
+  }
+  
+  /* Esconde textos redundantes para salvar espaço crucial na tela */
+  .hide-mobile {
+    display: none !important;
+  }
 }

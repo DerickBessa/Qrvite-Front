@@ -33,41 +33,56 @@ export function Topbar({ right, back, title }) {
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* Lado Esquerdo: Adicionado minWidth: 0 para o flexbox permitir que o texto encolha */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
           {back ? (
             <button
               onClick={back}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6,
+                display: 'flex', alignItems: 'center', gap: 4,
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: 'var(--text-2)', fontSize: 13, fontWeight: 600,
                 padding: '6px 0', fontFamily: 'var(--font)',
+                flexShrink: 0 // Impede o botão de voltar de sumir/espremer
               }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-2)'}
             >
-              <ArrowLeftIcon size={16} /> Festas
+              <ArrowLeftIcon size={16} /> <span className="hide-mobile">Festas</span>
             </button>
           ) : (
-            <Link to="/" className="logo">
+            <Link to="/" className="logo" style={{ flexShrink: 0 }}>
               <div className="logo-icon">
-                <QrIcon size={18} color="#010B04" />
+                {/* Removido o hardcode de cor do QrIcon para respeitar as variáveis CSS do seu tema */}
+                <QrIcon size={18} color="currentColor" />
               </div>
-              <span className="logo-text">TáNaLista</span>
+              <span className="logo-text hide-mobile">TáNaLista</span>
               <span className="logo-badge">Beta</span>
             </Link>
           )}
+
           {title && (
             <>
-              <span style={{ color: 'var(--border-2)', fontSize: 16 }}>/</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ color: 'var(--border-2)', fontSize: 16, flexShrink: 0 }}>/</span>
+              {/* Ajustado: largura máxima baseada em view-width (vw) dinâmica para telas pequenas */}
+              <span style={{ 
+                fontSize: 14, 
+                fontWeight: 700, 
+                color: 'var(--text)', 
+                maxWidth: '35vw', 
+                overflow: 'hidden', 
+                textOverflow: 'ellipsis', 
+                whiteSpace: 'nowrap',
+                flexShrink: 1 
+              }}>
                 {title}
               </span>
             </>
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* Lado Direito: Mantém o alinhamento dos botões de ação fixos */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <button
             className="theme-toggle"
             onClick={toggle}
@@ -77,7 +92,7 @@ export function Topbar({ right, back, title }) {
             {theme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
           </button>
 
-          {right && <div>{right}</div>}
+          {right && <div style={{ display: 'flex', alignItems: 'center' }}>{right}</div>}
         </div>
       </div>
     </header>
